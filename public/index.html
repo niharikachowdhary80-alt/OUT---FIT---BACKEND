@@ -1,1 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Out→Fit</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --card: #161616;
+    --card2: #1e1e1e;
+    --accent: #c8f060;
+    --accent2: #f0c060;
+    --text: #f0ede6;
+    --muted: #888;
+    --border: #2a2a2a;
+    --radius: 16px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 40px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top:0;
+    background: rgba(14,14,14,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+  .weather-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .weather-badge:hover { border-color: var(--accent); }
+  .weather-badge .emoji { font-size: 1.1rem; }
+
+  /* ── LAYOUT ── */
+  main {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 85px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow-y: auto;
+    max-height: calc(100vh - 85px);
+    position: sticky;
+    top: 85px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-style: italic;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  /* Add item form */
+  .add-form { display: flex; flex-direction: column; gap: 10px; }
+  .add-form input, .add-form select {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .add-form input:focus, .add-form select:focus { border-color: var(--accent); }
+  .add-form select option { background: #1e1e1e; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn {
+    padding: 11px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .btn-accent {
+    background: var(--accent);
+    color: #0e0e0e;
+  }
+  .btn-accent:hover { background: #d4f570; transform: translateY(-1px); }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Wardrobe list */
+  .wardrobe-list { display: flex; flex-direction: column; gap: 8px; }
+  .wardrobe-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    animation: slideIn 0.25s ease;
+  }
+  @keyframes slideIn {
+    from { opacity:0; transform: translateX(-10px); }
+    to   { opacity:1; transform: translateX(0); }
+  }
+  .item-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.2);
+  }
+  .item-info { flex:1; }
+  .item-name { font-size: 0.9rem; font-weight: 500; }
+  .item-meta { font-size: 0.75rem; color: var(--muted); margin-top: 1px; }
+  .remove-btn {
+    background: none; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 1rem; padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .remove-btn:hover { color: #ff6b6b; background: rgba(255,107,107,0.1); }
+  .empty-wardrobe {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 20px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .content {
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* Weather section */
+  .weather-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+  }
+  .weather-icon { font-size: 3.5rem; line-height:1; }
+  .weather-info { flex:1; }
+  .weather-temp {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.8rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .weather-desc { color: var(--muted); margin-top: 4px; font-size: 0.95rem; }
+  .weather-city { font-size: 0.85rem; color: var(--accent); margin-top: 6px; font-weight: 500; }
+  .city-form { display: flex; gap: 10px; flex:1; justify-content: flex-end; }
+  .city-form input {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    width: 180px;
+    transition: border-color 0.2s;
+  }
+  .city-form input:focus { border-color: var(--accent); }
+
+  /* Suggest section */
+  .suggest-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+  }
+  .suggest-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .suggest-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+  }
+  .occasion-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .occasion-chip {
+    padding: 7px 16px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .occasion-chip:hover, .occasion-chip.active {
+    background: var(--accent);
+    color: #0e0e0e;
+    border-color: var(--accent);
+  }
+  .suggestion-box {
+    background: var(--card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    min-height: 120px;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text);
+    position: relative;
+  }
+  .suggestion-placeholder {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .loading-dots {
+    display: inline-flex; gap: 4px; align-items: center;
+  }
+  .loading-dots span {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: bounce 1s infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+  }
+
+  /* Stats */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--accent);
+  }
+  .stat-label { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--accent); color: #0e0e0e;
+    padding: 12px 20px; border-radius: 10px;
+    font-weight: 500; font-size: 0.9rem;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  @media (max-width: 768px) {
+    main { grid-template-columns: 1fr; }
+    .sidebar { position: static; max-height: none; }
+    .content { padding: 24px 20px; }
+    header { padding: 20px; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Out<span>→</span>Fit</div>
+  <div class="weather-badge" onclick="document.getElementById('cityInput').focus()">
+    <span class="emoji" id="headerWeatherEmoji">🌤</span>
+    <span id="headerWeatherText">Check weather</span>
+  </div>
+</header>
+
+<main>
+  <!-- SIDEBAR: Wardrobe -->
+  <aside class="sidebar">
+    <div>
+      <div class="section-title">Add to wardrobe</div>
+      <div class="add-form" id="addForm">
+        <input type="text" id="itemName" placeholder="Item name (e.g. White linen shirt)" maxlength="50"/>
+        <div class="row2">
+          <select id="itemCategory">
+            <option value="">Category</option>
+            <option value="Top">Top</option>
+            <option value="Bottom">Bottom</option>
+            <option value="Dress">Dress</option>
+            <option value="Outerwear">Outerwear</option>
+            <option value="Shoes">Shoes</option>
+            <option value="Accessory">Accessory</option>
+          </select>
+          <input type="text" id="itemColor" placeholder="Color"/>
+        </div>
+        <button class="btn btn-accent" onclick="addItem()">+ Add Item</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">My wardrobe (<span id="itemCount">0</span>)</div>
+      <div class="wardrobe-list" id="wardrobeList">
+        <div class="empty-wardrobe">Your wardrobe is empty.<br/>Add some items above! 👆</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="content">
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="statTotal">0</div>
+        <div class="stat-label">Total items</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statCategories">0</div>
+        <div class="stat-label">Categories</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="statSuggestions">0</div>
+        <div class="stat-label">Outfits suggested</div>
+      </div>
+    </div>
+
+    <!-- Weather -->
+    <div class="weather-card">
+      <div class="weather-icon" id="weatherIcon">🌤️</div>
+      <div class="weather-info">
+        <div class="weather-temp" id="weatherTemp">--°C</div>
+        <div class="weather-desc" id="weatherDesc">Enter your city to get weather</div>
+        <div class="weather-city" id="weatherCity"></div>
+      </div>
+      <div class="city-form">
+        <input type="text" id="cityInput" placeholder="Your city..." onkeydown="if(event.key==='Enter') fetchWeather()"/>
+        <button class="btn btn-outline" onclick="fetchWeather()">Check</button>
+      </div>
+    </div>
+
+    <!-- Suggest -->
+    <div class="suggest-card">
+      <div class="suggest-header">
+        <div class="suggest-title">✨ Get Outfit Suggestion</div>
+      </div>
+      <div class="occasion-row" id="occasionRow">
+        <button class="occasion-chip active" onclick="selectOccasion(this, 'casual')">Casual</button>
+        <button class="occasion-chip" onclick="selectOccasion(this, 'work')">Work</button>
+        <button class="occasion-chip" onclick="selectOccasion(this, 'dinner date')">Dinner Date</button>
+        <button class="occasion-chip" onclick="selectOccasion(this, 'gym / workout')">Gym</button>
+        <button class="occasion-chip" onclick="selectOccasion(this, 'formal event')">Formal</button>
+      </div>
+      <div class="suggestion-box" id="suggestionBox">
+        <span class="suggestion-placeholder">Your AI outfit suggestion will appear here. Add some wardrobe items and hit the button below! 👗</span>
+      </div>
+      <br/>
+      <button class="btn btn-accent" style="width:100%;padding:14px;" onclick="getSuggestion()">
+        ✨ Suggest My Outfit
+      </button>
+    </div>
+
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let wardrobe = JSON.parse(localStorage.getItem('wardrobe') || '[]');
+  let weather = null;
+  let occasion = 'casual';
+  let suggestionCount = parseInt(localStorage.getItem('suggestionCount') || '0');
+
+  const BACKEND = window.location.origin; // same origin since frontend is served by backend
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  renderWardrobe();
+  updateStats();
+
+  // ── Wardrobe ───────────────────────────────────────────────────────────────
+  function addItem() {
+    const name = document.getElementById('itemName').value.trim();
+    const category = document.getElementById('itemCategory').value;
+    const color = document.getElementById('itemColor').value.trim();
+    if (!name) { showToast('Please enter an item name!'); return; }
+    wardrobe.push({ id: Date.now(), name, category: category || 'Other', color: color || 'Various' });
+    localStorage.setItem('wardrobe', JSON.stringify(wardrobe));
+    document.getElementById('itemName').value = '';
+    document.getElementById('itemColor').value = '';
+    document.getElementById('itemCategory').value = '';
+    renderWardrobe();
+    updateStats();
+    showToast('Item added! 🎉');
+  }
+
+  function removeItem(id) {
+    wardrobe = wardrobe.filter(i => i.id !== id);
+    localStorage.setItem('wardrobe', JSON.stringify(wardrobe));
+    renderWardrobe();
+    updateStats();
+  }
+
+  function renderWardrobe() {
+    const list = document.getElementById('wardrobeList');
+    document.getElementById('itemCount').textContent = wardrobe.length;
+    if (wardrobe.length === 0) {
+      list.innerHTML = '<div class="empty-wardrobe">Your wardrobe is empty.<br/>Add some items above! 👆</div>';
+      return;
+    }
+    list.innerHTML = wardrobe.map(item => `
+      <div class="wardrobe-item">
+        <div class="item-dot" style="background:${colorToHex(item.color)}"></div>
+        <div class="item-info">
+          <div class="item-name">${item.name}</div>
+          <div class="item-meta">${item.category} · ${item.color}</div>
+        </div>
+        <button class="remove-btn" onclick="removeItem(${item.id})">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function colorToHex(colorName) {
+    const map = {
+      white:'#f5f5f5', black:'#333', red:'#e74c3c', blue:'#3498db',
+      green:'#2ecc71', yellow:'#f1c40f', pink:'#e91e8c', purple:'#9b59b6',
+      orange:'#e67e22', grey:'#95a5a6', gray:'#95a5a6', brown:'#a0522d',
+      navy:'#1a237e', beige:'#f5f0e1', cream:'#fffdd0',
+    };
+    return map[colorName.toLowerCase()] || '#888';
+  }
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  function updateStats() {
+    document.getElementById('statTotal').textContent = wardrobe.length;
+    const cats = new Set(wardrobe.map(i => i.category)).size;
+    document.getElementById('statCategories').textContent = cats;
+    document.getElementById('statSuggestions').textContent = suggestionCount;
+  }
+
+  // ── Occasion ───────────────────────────────────────────────────────────────
+  function selectOccasion(btn, val) {
+    occasion = val;
+    document.querySelectorAll('.occasion-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // ── Weather ────────────────────────────────────────────────────────────────
+  async function fetchWeather() {
+    const city = document.getElementById('cityInput').value.trim();
+    if (!city) { showToast('Enter a city name!'); return; }
+    document.getElementById('weatherDesc').textContent = 'Loading...';
+    try {
+      const res = await fetch(`${BACKEND}/api/weather?city=${encodeURIComponent(city)}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      weather = data;
+      const emoji = getWeatherEmoji(data.description);
+      document.getElementById('weatherIcon').textContent = emoji;
+      document.getElementById('weatherTemp').textContent = `${data.temp_c}°C / ${data.temp_f}°F`;
+      document.getElementById('weatherDesc').textContent = data.description;
+      document.getElementById('weatherCity').textContent = `📍 ${data.city}`;
+      document.getElementById('headerWeatherEmoji').textContent = emoji;
+      document.getElementById('headerWeatherText').textContent = `${data.temp_c}°C · ${data.city}`;
+      showToast('Weather updated! ☀️');
+    } catch (e) {
+      document.getElementById('weatherDesc').textContent = 'Could not load weather.';
+      showToast('Weather fetch failed 😢');
+    }
+  }
+
+  function getWeatherEmoji(desc) {
+    desc = desc.toLowerCase();
+    if (desc.includes('sun') || desc.includes('clear')) return '☀️';
+    if (desc.includes('cloud')) return '☁️';
+    if (desc.includes('rain') || desc.includes('drizzle')) return '🌧️';
+    if (desc.includes('snow')) return '❄️';
+    if (desc.includes('thunder') || desc.includes('storm')) return '⛈️';
+    if (desc.includes('fog') || desc.includes('mist')) return '🌫️';
+    return '🌤️';
+  }
+
+  // ── AI Suggestion ──────────────────────────────────────────────────────────
+  async function getSuggestion() {
+    if (wardrobe.length === 0) { showToast('Add some clothes first! 👗'); return; }
+    const box = document.getElementById('suggestionBox');
+    box.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div> Styling your outfit...';
+    try {
+      const res = await fetch(`${BACKEND}/api/suggest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wardrobe, weather, occasion }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      box.textContent = data.suggestion;
+      suggestionCount++;
+      localStorage.setItem('suggestionCount', suggestionCount);
+      updateStats();
+    } catch (e) {
+      box.innerHTML = `<span style="color:#ff6b6b">Error: ${e.message}. Make sure your backend is running and API key is set!</span>`;
+    }
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>
 
